@@ -3,74 +3,184 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f172a">
-  <title>GoSignal</title>
+  <meta name="theme-color" content="#08111f">
+  <meta name="description" content="GoSignal Air gives allergy, asthma, and exposure-sensitive people a live answer on whether now is a good time to head outside.">
+  <title>GoSignal Air</title>
+  <link rel="preconnect" href="https://api.open-meteo.com">
+  <link rel="preconnect" href="https://geocoding-api.open-meteo.com">
+  <link rel="preconnect" href="https://air-quality-api.open-meteo.com">
+  <link rel="preconnect" href="https://overpass-api.de">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/icon-180.svg">
-  <link rel="stylesheet" href="./styles.css?v=3">
+  <link rel="stylesheet" href="./styles.css?v=4">
 </head>
 <body>
-  <div class="app-shell">
+  <div class="bg-mesh" aria-hidden="true"></div>
+  <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">GoSignal</p>
-        <h1>Weather, air, and place-aware go/no-go guidance.</h1>
+        <p class="eyebrow">GoSignal Air</p>
+        <h1>Is it a good time to step outside?</h1>
+        <p class="lede">Live exposure guidance for allergy, asthma, and air-sensitive days.</p>
       </div>
-      <button id="installBtn" class="ghost hidden" type="button">Install</button>
+      <div class="top-actions">
+        <button id="shareBtn" class="icon-btn" type="button" aria-label="Share this view">Share</button>
+        <button id="installBtn" class="icon-btn hidden" type="button">Install</button>
+      </div>
     </header>
 
-    <section class="card hero">
-      <div class="hero-row">
-        <div>
-          <p id="locationLine" class="muted">Finding your location…</p>
-          <div id="recommendation" class="recommendation pending">Checking conditions…</div>
+    <section class="card hero-card">
+      <div class="hero-grid">
+        <div class="score-panel">
+          <p id="locationLine" class="location-line">Finding your location...</p>
+          <div class="score-orb" id="scoreOrb">
+            <span class="score-label">Live score</span>
+            <strong id="scoreValue">--</strong>
+            <span id="scoreHint" class="score-hint">Loading</span>
+          </div>
         </div>
-        <button id="refreshBtn" class="primary" type="button">Refresh</button>
+
+        <div class="hero-copy">
+          <div id="statusBadge" class="status-badge pending">Checking conditions</div>
+          <p id="summary" class="summary" aria-live="polite">Allow location or search a city to get a live exposure read.</p>
+          <div id="reasonChips" class="reason-chips" aria-live="polite"></div>
+          <div class="hero-actions">
+            <button id="refreshBtn" class="primary-btn" type="button">Refresh now</button>
+            <button id="locateBtn" class="secondary-btn" type="button">Use my location</button>
+          </div>
+        </div>
       </div>
-      <div id="summary" class="summary">Allow location or search a city to get a tailored recommendation.</div>
-      <div id="chips" class="chips"></div>
     </section>
 
-    <section class="card controls">
-      <label class="search">
-        <span>Search city</span>
+    <section class="card search-card">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">Location</p>
+          <h2>Check any city instantly</h2>
+        </div>
+        <p class="section-note">Real-time weather and air quality, plus pollen where available.</p>
+      </div>
+      <label class="search-field" for="cityInput">
+        <span>City search</span>
         <div class="search-row">
-          <input id="cityInput" type="search" placeholder="San Francisco, Paris, Tokyo">
-          <button id="searchBtn" type="button">Search</button>
+          <input id="cityInput" type="search" inputmode="search" autocomplete="address-level2" placeholder="San Francisco, Berlin, Madrid">
+          <button id="searchBtn" class="primary-btn" type="button">Search</button>
         </div>
       </label>
-      <p class="muted tiny">Location data is fetched live from Open-Meteo, nearby places from OpenStreetMap Overpass.</p>
     </section>
 
-    <section class="grid">
-      <article class="card stats">
-        <h2>Current conditions</h2>
-        <div id="statsGrid" class="stats-grid"></div>
+    <section class="card profile-card">
+      <div class="section-heading compact">
+        <div>
+          <p class="section-kicker">Profiles</p>
+          <h2>Pick the situation you care about</h2>
+        </div>
+        <p id="profileBlurb" class="section-note">Tuning guidance...</p>
+      </div>
+      <div id="profiles" class="profile-strip" role="tablist" aria-label="Exposure profiles"></div>
+    </section>
+
+    <section class="card timeline-card">
+      <div class="section-heading compact">
+        <div>
+          <p class="section-kicker">Next 12 hours</p>
+          <h2>Safer windows ahead</h2>
+        </div>
+        <p id="timelineNote" class="section-note">Calculating the best times...</p>
+      </div>
+      <div id="windowsList" class="windows-strip" aria-live="polite"></div>
+    </section>
+
+    <section class="grid-two">
+      <article class="card metrics-card">
+        <div class="section-heading compact">
+          <div>
+            <p class="section-kicker">Right now</p>
+            <h2>What is driving the score</h2>
+          </div>
+          <p class="section-note">Plain-language signals, not raw charts.</p>
+        </div>
+        <div id="metricsGrid" class="metrics-grid"></div>
       </article>
 
-      <article class="card windows">
-        <h2>Best windows, next 12h</h2>
-        <div id="windowsList" class="windows-list"></div>
-      </article>
-
-      <article class="card places">
-        <h2>Nearby places</h2>
-        <div id="placesList" class="places-list"></div>
+      <article class="card plan-card">
+        <div class="section-heading compact">
+          <div>
+            <p class="section-kicker">Plan</p>
+            <h2>What to do next</h2>
+          </div>
+          <p class="section-note">Built for fast phone decisions.</p>
+        </div>
+        <div id="planList" class="plan-list" aria-live="polite"></div>
       </article>
     </section>
 
-    <section class="card offline">
-      <h2>Offline snapshot</h2>
-      <p id="offlineLine" class="muted">Last fetched data will stay available offline.</p>
+    <section class="card places-card">
+      <div class="section-heading compact">
+        <div>
+          <p class="section-kicker">Nearby</p>
+          <h2>Helpful spots around you</h2>
+        </div>
+        <p id="placesNote" class="section-note">Loading nearby places...</p>
+      </div>
+      <div id="placesList" class="places-list"></div>
     </section>
-  </div>
 
-  <template id="chipTpl"><button class="chip" type="button"></button></template>
-  <template id="statTpl"><div class="stat"><div class="label"></div><div class="value"></div></div></template>
-  <template id="windowTpl"><div class="window"><div class="window-time"></div><div class="window-meta"></div></div></template>
-  <template id="placeTpl"><a class="place" href="#" target="_blank" rel="noreferrer noopener"><div class="place-head"><div class="place-name"></div><div class="place-kind"></div></div><div class="place-meta"></div></a></template>
+    <section class="card footer-card">
+      <div class="footer-grid">
+        <div>
+          <h2>Offline snapshot</h2>
+          <p id="offlineLine" class="section-note">The last successful check stays on device for quick reopen.</p>
+        </div>
+        <p class="disclaimer">Not medical advice. Always follow your doctor’s plan for asthma, allergies, or emergency symptoms.</p>
+      </div>
+    </section>
+  </main>
 
-  <script src="./app.js?v=3"></script>
+  <template id="profileTpl">
+    <button class="profile-pill" type="button" role="tab" aria-selected="false">
+      <span class="profile-icon" aria-hidden="true"></span>
+      <span class="profile-text"></span>
+    </button>
+  </template>
+
+  <template id="windowTpl">
+    <article class="window-card">
+      <div class="window-top">
+        <span class="window-time"></span>
+        <span class="window-score"></span>
+      </div>
+      <div class="window-state"></div>
+      <p class="window-meta"></p>
+    </article>
+  </template>
+
+  <template id="metricTpl">
+    <article class="metric-card">
+      <span class="metric-label"></span>
+      <strong class="metric-value"></strong>
+      <span class="metric-note"></span>
+    </article>
+  </template>
+
+  <template id="planTpl">
+    <article class="plan-item">
+      <strong class="plan-title"></strong>
+      <p class="plan-copy"></p>
+    </article>
+  </template>
+
+  <template id="placeTpl">
+    <a class="place-card" href="#" target="_blank" rel="noreferrer noopener">
+      <div>
+        <strong class="place-name"></strong>
+        <p class="place-meta"></p>
+      </div>
+      <span class="place-cta">Open map</span>
+    </a>
+  </template>
+
+  <script src="./app.js?v=4"></script>
 </body>
 </html>
