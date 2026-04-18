@@ -45,7 +45,7 @@ const PROFILES = [
     weights: { aqi: 1.5, pm: 1.5, uv: 1.1, temp: 1.3, humidity: 0.8, wind: 0.7, rain: 0.9, pollen: 0.6 },
     idealTemp: [10, 18],
     placeSets: {
-      safer: [{ key: 'leisure', value: 'park' }, { key: 'leisure', value: 'fitness_station' }, { key: 'amenity', value: 'drinking_water' }],
+      safer: [{ key: 'leisure', value: 'park' }, { key: 'leisure', value: 'sports_centre' }, { key: 'amenity', value: 'cafe' }],
       shelter: [{ key: 'amenity', value: 'cafe' }, { key: 'amenity', value: 'pharmacy' }, { key: 'amenity', value: 'library' }],
     },
   },
@@ -60,6 +60,8 @@ const state = {
   hours: [],
   places: [],
   savedAt: null,
+  loadSeq: 0,
+  placesSeq: 0,
 }
 
 const $ = (id) => document.getElementById(id)
@@ -616,9 +618,9 @@ function renderAll() {
   if (currentModel.score >= 68) {
     els.summary.textContent = bestHour && bestModel ? `${profile.label} looks good right now. ${fmtTime(bestHour.time)} is the strongest window in the next 12 hours.` : `${profile.label} looks good right now.`
   } else if (bestHour && bestModel && bestModel.score > currentModel.score) {
-    els.summary.textContent = `${reason?.label || 'Conditions'} are dragging the score down. Waiting until ${fmtTime(bestHour.time)} should feel better.`
+    els.summary.textContent = `${reason?.label || 'Conditions'} is the main drag right now. Waiting until ${fmtTime(bestHour.time)} should feel better.`
   } else {
-    els.summary.textContent = `${reason?.label || 'Conditions'} are the main pressure point right now. If you go, keep it brief and watch symptoms.`
+    els.summary.textContent = `${reason?.label || 'Conditions'} is the main pressure point right now. If you go, keep it brief and watch symptoms.`
   }
 
   renderReasons(topReasons(currentModel))
@@ -635,6 +637,7 @@ function renderAll() {
 }
 
 async function loadLocation(lat, lon, cityLabel = '') {
+  const loadId = ++state.loadSeq
   state.coords = { lat, lon }
   state.city = cityLabel || ''
   state.places = []
@@ -649,6 +652,8 @@ async function loadLocation(lat, lon, cityLabel = '') {
     cityLabel ? Promise.resolve(null) : reverseLookup(lat, lon).catch(() => null),
   ])
 
+  if (loadId !== state.loadSeq) return
+
   const merged = mergeByTime(weather, air)
   state.snapshot = merged
   state.hours = merged.hours
@@ -662,11 +667,17 @@ async function loadLocation(lat, lon, cityLabel = '') {
 
   const profile = currentProfile()
   const currentModel = exposureModel(state.snapshot.current, profile)
+  const placesId = ++state.placesSeq
   try {
-    state.places = await getPlaces(lat, lon, state.profileId, currentModel.score)
+    const places = await getPlaces(lat, lon, state.profileId, currentModel.score)
+    if (loadId !== state.loadSeq || placesId !== state.placesSeq) return
+    state.places = places
     renderPlaces()
+    els.placesNote.textContent = currentModel.score >= 60 ? 'Useful nearby options if you want to make the most of this window.' : 'Fallback indoor or support spots if conditions feel rough.'
   } catch {
+    if (loadId !== state.loadSeq || placesId !== state.placesSeq) return
     els.placesList.innerHTML = '<div class="empty-state">Nearby places could not load right now.</div>'
+    els.placesNote.textContent = 'Nearby places could not load right now.'
   }
   saveCache()
 }
@@ -675,16 +686,20 @@ async function changeProfile(profileId) {
   state.profileId = profileId
   renderAll()
   if (state.coords && state.snapshot?.current) {
+    const placesId = ++state.placesSeq
     els.placesNote.textContent = 'Refreshing nearby places for this profile...'
     try {
       const profile = currentProfile()
       const currentModel = exposureModel(state.snapshot.current, profile)
-      state.places = await getPlaces(state.coords.lat, state.coords.lon, state.profileId, currentModel.score)
+      const places = await getPlaces(state.coords.lat, state.coords.lon, state.profileId, currentModel.score)
+      if (placesId !== state.placesSeq) return
+      state.places = places
       renderPlaces()
       els.placesNote.textContent = currentModel.score >= 60 ? 'Useful nearby options if you want to make the most of this window.' : 'Fallback indoor or support spots if conditions feel rough.'
       saveCache()
       syncUrl()
     } catch {
+      if (placesId !== state.placesSeq) return
       els.placesNote.textContent = 'Nearby places could not refresh right now.'
     }
   }
