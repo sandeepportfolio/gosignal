@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="GoSignal icon">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#6ee7b7"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#07111f"/>
+  <circle cx="256" cy="256" r="170" fill="none" stroke="url(#g)" stroke-width="28"/>
+  <circle cx="256" cy="256" r="95" fill="url(#g)"/>
+  <path d="M258 114v58m0 168v58M114 256h58m168 0h58" stroke="#fff" stroke-width="30" stroke-linecap="round"/>
+</svg>
